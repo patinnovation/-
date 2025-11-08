@@ -1,22 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppState, useAppDispatch } from '../hooks/useAppStore';
 import { MenuItem } from '../types';
-import { MENU_CATEGORIES } from '../constants';
+import CategoryManager from './CategoryManager';
 
 const MenuEditorPage: React.FC = () => {
-    const { menu } = useAppState();
+    const { menu, categories } = useAppState();
     const dispatch = useAppDispatch();
     
     const [isFormVisible, setIsFormVisible] = useState(false);
     const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
+    
     const [formState, setFormState] = useState({
         name: '',
         price: '',
-        category: MENU_CATEGORIES[0],
-        image: ''
+        category: categories.length > 0 ? categories[0] : '',
+        image: '',
+        description: '',
     });
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    useEffect(() => {
+        // If categories are loaded or changed, and there's no selected category in the form,
+        // default to the first one. This handles the case of deleting the currently selected category.
+        if (!categories.includes(formState.category)) {
+            setFormState(prev => ({ ...prev, category: categories[0] || '' }));
+        }
+    }, [categories, formState.category]);
+
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setFormState(prev => ({ ...prev, [name]: value }));
     };
@@ -34,27 +45,33 @@ const MenuEditorPage: React.FC = () => {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         const price = parseFloat(formState.price);
-        if (!formState.name || isNaN(price) || price <= 0) {
-            alert('Please fill in all fields correctly.');
+        if (!formState.name || isNaN(price) || price <= 0 || !formState.category) {
+            alert('Please fill in all fields correctly, including selecting a category.');
             return;
         }
+
+        const payload = {
+            ...formState,
+            price,
+            description: formState.description,
+        };
 
         if (editingItem) {
             dispatch({
                 type: 'UPDATE_MENU_ITEM',
-                payload: { ...editingItem, ...formState, price }
+                payload: { ...editingItem, ...payload }
             });
         } else {
             dispatch({
                 type: 'ADD_MENU_ITEM',
-                payload: { id: `m-${Date.now()}`, ...formState, price, isAvailable: true }
+                payload: { id: `m-${Date.now()}`, ...payload, isAvailable: true }
             });
         }
         resetForm();
     };
 
     const resetForm = () => {
-        setFormState({ name: '', price: '', category: MENU_CATEGORIES[0], image: '' });
+        setFormState({ name: '', price: '', category: categories[0] || '', image: '', description: '' });
         setEditingItem(null);
         setIsFormVisible(false);
     };
@@ -65,7 +82,8 @@ const MenuEditorPage: React.FC = () => {
             name: item.name,
             price: String(item.price),
             category: item.category,
-            image: item.image
+            image: item.image,
+            description: item.description || ''
         });
         setIsFormVisible(true);
     };
@@ -80,12 +98,25 @@ const MenuEditorPage: React.FC = () => {
         dispatch({ type: 'TOGGLE_MENU_ITEM_AVAILABILITY', payload: { itemId } });
     };
 
+    const handleAddNewItemClick = () => {
+        if (isFormVisible && !editingItem) {
+            setIsFormVisible(false);
+        } else {
+            setEditingItem(null);
+            setFormState({ name: '', price: '', category: categories[0] || '', image: '', description: '' });
+            setIsFormVisible(true);
+        }
+    };
+
+
     return (
         <div>
-            <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-semibold text-brand-dark">จัดการเมนูอาหาร</h2>
-                <button onClick={() => { setIsFormVisible(!isFormVisible); setEditingItem(null); }} className="bg-brand-primary text-white font-bold py-2 px-4 rounded-lg hover:bg-opacity-80 transition-colors">
-                    {isFormVisible ? 'ยกเลิก' : 'เพิ่มเมนูใหม่'}
+            <CategoryManager />
+
+            <div className="flex justify-between items-center mb-6 mt-8">
+                <h2 className="text-2xl font-semibold text-brand-dark">จัดการรายการอาหาร</h2>
+                <button onClick={handleAddNewItemClick} className="bg-brand-primary text-white font-bold py-2 px-4 rounded-lg hover:bg-opacity-80 transition-colors">
+                    {isFormVisible && !editingItem ? 'ยกเลิก' : 'เพิ่มเมนูใหม่'}
                 </button>
             </div>
 
@@ -98,8 +129,18 @@ const MenuEditorPage: React.FC = () => {
                     </div>
                     <div>
                         <select name="category" value={formState.category} onChange={handleInputChange} className="bg-white p-2 rounded w-full border border-gray-300">
-                            {MENU_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                            {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                         </select>
+                    </div>
+                    <div>
+                        <textarea
+                            name="description"
+                            value={formState.description}
+                            onChange={handleInputChange}
+                            placeholder="คำอธิบายเมนู (ไม่บังคับ)"
+                            className="bg-white p-2 rounded w-full border border-gray-300"
+                            rows={3}
+                        ></textarea>
                     </div>
                     <div>
                         <label className="block mb-2 text-sm font-medium text-gray-700">รูปภาพ</label>
@@ -126,7 +167,10 @@ const MenuEditorPage: React.FC = () => {
                             </div>
                         )}
                         <img src={item.image} alt={item.name} className="w-full h-32 object-cover rounded-md mb-4" />
-                        <h4 className="text-lg font-bold text-brand-dark">{item.name}</h4>
+                        <div className="flex-grow">
+                            <h4 className="text-lg font-bold text-brand-dark">{item.name}</h4>
+                            {item.description && <p className="text-sm text-gray-600 my-1">{item.description}</p>}
+                        </div>
                         <p className="text-gray-500">{item.category}</p>
                         <p className="text-brand-primary font-semibold mt-2">{item.price} บาท</p>
                         <div className="mt-auto pt-4 flex gap-2">

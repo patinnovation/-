@@ -4,6 +4,7 @@ import { Routes, Route, NavLink } from 'react-router-dom';
 import BillingPage from './BillingPage';
 import SalesReportPage from './SalesReportPage';
 import MenuEditorPage from './MenuEditorPage';
+import PaymentMethodsPage from './PaymentMethodsPage';
 
 const OwnerDashboard: React.FC = () => {
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
@@ -26,12 +27,16 @@ const OwnerDashboard: React.FC = () => {
         <NavLink to="/owner/menu" className={navLinkClass}>
           จัดการเมนู
         </NavLink>
+        <NavLink to="/owner/payment" className={navLinkClass}>
+          ช่องทางการชำระเงิน
+        </NavLink>
       </nav>
       <div className="bg-brand-surface p-6 rounded-lg shadow-lg">
         <Routes>
           <Route path="/" element={<BillingPage />} />
           <Route path="reports" element={<SalesReportPage />} />
           <Route path="menu" element={<MenuEditorPage />} />
+          <Route path="payment" element={<PaymentMethodsPage />} />
         </Routes>
       </div>
     </div>

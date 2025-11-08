@@ -5,6 +5,7 @@ export interface MenuItem {
   category: string;
   image: string;
   isAvailable: boolean;
+  description?: string;
 }
 
 export interface OrderItem extends MenuItem {
@@ -26,4 +27,13 @@ export interface Order {
   status: OrderStatus;
   timestamp: number;
   total: number;
+}
+
+export interface PaymentMethodsState {
+  cash: boolean;
+  promptPay: boolean;
+  bankTransfer: {
+    enabled: boolean;
+    details: string;
+  };
 }

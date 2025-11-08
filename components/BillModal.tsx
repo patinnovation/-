@@ -5,6 +5,7 @@ import html2canvas from 'html2canvas';
 import { Order, OrderItem } from '../types';
 import { RESTAURANT_PROMPT_PAY_MOBILE } from '../constants';
 import { generatePromptPayQR } from '../utils/promptpay';
+import { useAppState } from '../hooks/useAppStore';
 
 interface BillModalProps {
     order: Partial<Order> & { items: OrderItem[] };
@@ -15,6 +16,7 @@ interface BillModalProps {
 
 const BillModal: React.FC<BillModalProps> = ({ order, onClose, title, message }) => {
     const billRef = useRef<HTMLDivElement>(null);
+    const { paymentMethods } = useAppState();
     const promptPayQRData = generatePromptPayQR(RESTAURANT_PROMPT_PAY_MOBILE, order.total);
 
     const handlePrint = () => {
@@ -55,10 +57,31 @@ const BillModal: React.FC<BillModalProps> = ({ order, onClose, title, message })
                         <span>รวมทั้งสิ้น</span>
                         <span>{order.total?.toFixed(2)} บาท</span>
                     </div>
-                    <div className="flex flex-col items-center mt-6">
-                        <p className="font-semibold mb-2">สแกนเพื่อชำระเงิน</p>
-                        <QRCodeSVG value={promptPayQRData} size={150} />
-                        <p className="text-xs text-gray-600 mt-2">สามารถสแกนเพื่อชำระเงินได้</p>
+                    
+                    <div className="mt-6 space-y-4">
+                         { (paymentMethods.promptPay || (paymentMethods.bankTransfer.enabled && paymentMethods.bankTransfer.details) || paymentMethods.cash) && 
+                            <p className="text-center font-bold text-sm">ช่องทางการชำระเงิน</p> 
+                        }
+
+                        {paymentMethods.promptPay && (
+                            <div className="flex flex-col items-center border p-3 rounded-md">
+                                <p className="font-semibold mb-2">PromptPay</p>
+                                <QRCodeSVG value={promptPayQRData} size={150} />
+                            </div>
+                        )}
+
+                        {paymentMethods.bankTransfer.enabled && paymentMethods.bankTransfer.details && (
+                            <div className="border p-3 rounded-md">
+                                <p className="font-semibold mb-2 text-center">โอนผ่านบัญชีธนาคาร</p>
+                                <p className="text-sm whitespace-pre-wrap text-center">{paymentMethods.bankTransfer.details}</p>
+                            </div>
+                        )}
+                        
+                        {paymentMethods.cash && (
+                            <div className="text-center text-sm text-gray-600 border p-3 rounded-md">
+                                <p>สามารถชำระด้วยเงินสดได้</p>
+                            </div>
+                        )}
                     </div>
                 </div>
 

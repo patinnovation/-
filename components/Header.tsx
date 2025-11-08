@@ -1,15 +1,28 @@
-import React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 
 const Header: React.FC = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const params = useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const tableNumberFromUrl = params.get('table') || '1';
   
-  const getTableNumber = () => {
-    const params = new URLSearchParams(location.search);
-    return params.get('table');
+  const [tableInput, setTableInput] = useState(tableNumberFromUrl);
+
+  useEffect(() => {
+    setTableInput(tableNumberFromUrl);
+  }, [tableNumberFromUrl]);
+  
+  const handleTableChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newTable = e.target.value;
+    setTableInput(newTable);
+    // Update URL only if the path is the order page
+    if (location.pathname === '/') {
+       navigate(`/?table=${newTable || '1'}`, { replace: true });
+    }
   };
 
-  const tableNumber = getTableNumber();
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
     `px-4 py-2 rounded-md text-sm font-medium transition-colors duration-300 ${
@@ -28,15 +41,28 @@ const Header: React.FC = () => {
             <span className="text-2xl font-bold text-brand-primary">
               ครัวบ้านโอ่ง
             </span>
-            {tableNumber && (
+            {isCustomerView ? (
+              <div className="ml-4 flex items-center gap-2">
+                <label htmlFor="table-number-input" className="text-sm font-semibold text-brand-dark">โต๊ะ:</label>
+                <input
+                  id="table-number-input"
+                  type="number"
+                  value={tableInput}
+                  onChange={handleTableChange}
+                  className="w-20 p-1 border border-gray-300 rounded-md shadow-sm text-center focus:ring-2 focus:ring-brand-primary focus:border-transparent"
+                  min="1"
+                  aria-label="Table number"
+                />
+              </div>
+            ) : (
               <span className="ml-4 text-sm bg-brand-primary text-white font-semibold px-3 py-1 rounded-full">
-                โต๊ะ {tableNumber}
+                โต๊ะ {tableNumberFromUrl}
               </span>
             )}
           </div>
           {!isCustomerView && (
             <nav className="flex space-x-2">
-              <NavLink to={`/?table=${tableNumber || '1'}`} className={navLinkClass}>
+              <NavLink to={`/?table=${tableNumberFromUrl}`} className={navLinkClass}>
                 สั่งอาหาร
               </NavLink>
               <NavLink to="/kitchen" className={navLinkClass}>
